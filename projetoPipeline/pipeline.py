@@ -1,154 +1,92 @@
-import tkinter as tk
-import time
-import threading
+import tkinter as tk  #interfaces gráficas
+import time  #temporização
+import threading  #executar várias tarefas ao mesmo tempo
 
-# Definir os estágios do pipeline e as cores
-estagios = ["FI", "DI", "CO", "FO", "EI", "WO"]
-cores = ["lightblue", "lightgreen", "lightyellow", "lightcoral", "lightgray", "lightpink"]
-colunas = 14  # Número de colunas no pipeline
-instrucoes = 9  # Número máximo de instruções
+estagios = ["FI", "DI", "CO", "FO", "EI", "WO"] 
+cores = ["lightblue", "lightgreen", "lightyellow", "lightcoral", "lightgray", "lightpink"] 
+colunas = 14
+instrucoes = 9
 
-# Função para apagar elementos específicos
+# Função para apagar elementos específicos da matriz
 def apagar_elementos_especificos(matriz_labels):
-    # C8: Apagar L4, L5, L6, L7
-    matriz_labels[3][7].config(text="", bg="white")  # L4, C8
-    matriz_labels[4][7].config(text="", bg="white")  # L5, C8
-    matriz_labels[5][7].config(text="", bg="white")  # L6, C8
-    matriz_labels[6][7].config(text="", bg="white")  # L7, C8
+    apagar_lista = [(3, 7), (4, 7), (5, 7), (6, 7), (3, 8), (4, 8), (5, 8), (6, 8),
+                    (4, 9), (5, 9), (6, 9), (5, 10), (6, 10), (6, 11)]
+    #Apaga o conteúdo das células especificadas
+    for i, j in apagar_lista:
+        matriz_labels[i][j].config(text="", bg="white") 
 
-    # C9: Apagar L4, L5, L6, L7
-    matriz_labels[3][8].config(text="", bg="white")  # L4, C9
-    matriz_labels[4][8].config(text="", bg="white")  # L5, C9
-    matriz_labels[5][8].config(text="", bg="white")  # L6, C9
-    matriz_labels[6][8].config(text="", bg="white")  # L7, C9
-
-    # C10: Apagar L5, L6, L7
-    matriz_labels[4][9].config(text="", bg="white")  # L5, C10
-    matriz_labels[5][9].config(text="", bg="white")  # L6, C10
-    matriz_labels[6][9].config(text="", bg="white")  # L7, C10
-
-    # C11: Apagar L6, L7
-    matriz_labels[5][10].config(text="", bg="white")  # L6, C11
-    matriz_labels[6][10].config(text="", bg="white")  # L7, C11
-
-    # C12: Apagar L7
-    matriz_labels[6][11].config(text="", bg="white")  # L7, C12
-
-# Função para atualizar o pipeline normalmente
-def atualizar_pipeline_normalmente(matriz_labels, intervalo=1):
-    ciclo = 0
+# Função que atualiza o pipeline em cada ciclo
+# Se "com_interrupcao" for True, elementos específicos são apagados
+def atualizar_pipeline(matriz_labels, intervalo=1, com_interrupcao=False):
+    ciclo = 0 
     while True:
         for i in range(len(matriz_labels)):
-            estagio_index = ciclo - i
-            if 0 <= estagio_index < len(estagios):
+            estagio_index = ciclo - i 
+            if 0 <= estagio_index < len(estagios):  # Verifica se o estágio está dentro dos limit=es
+                # Atualiza a célula com o nome do estágio e a cor correspondente
                 matriz_labels[i][ciclo].config(text=estagios[estagio_index], bg=cores[estagio_index])
             else:
+                
                 matriz_labels[i][ciclo].config(text="", bg="white")
 
-        janela.update()  # Atualiza a interface gráfica
+        # Se a simulação tiver interrupção, apaga elementos específicos
+        if com_interrupcao:
+            apagar_elementos_especificos(matriz_labels)
+
+        janela.update()  # Atualiza
         time.sleep(intervalo)
-        ciclo += 1
+        ciclo += 1 
 
-# Função para atualizar o pipeline com interrupção
-def atualizar_pipeline_com_interrupcao(matriz_labels, intervalo=1):
-    ciclo = 0
-    while True:
-        for i in range(len(matriz_labels)):
-            estagio_index = ciclo - i
-            if 0 <= estagio_index < len(estagios):
-                matriz_labels[i][ciclo].config(text=estagios[estagio_index], bg=cores[estagio_index])
-            else:
-                matriz_labels[i][ciclo].config(text="", bg="white")
 
-        apagar_elementos_especificos(matriz_labels)  # Chama a função para apagar os elementos
-        janela.update()  # Atualiza a interface gráfica
-        time.sleep(intervalo)
-        ciclo += 1
 
-# Função para adicionar uma nova linha de instrução
-def adicionar_instrucao(matriz_labels, intervalo=2):
-    linha_instrucoes = 0
-    while linha_instrucoes < instrucoes:
-        time.sleep(intervalo)
-        if linha_instrucoes < len(matriz_labels):
-            # Adiciona nova linha de instrução
-            matriz_labels.append([tk.Label(matriz_frame, text="", width=15, height=3, relief="solid", bg="white") for _ in range(colunas)])
-            for j, label in enumerate(matriz_labels[linha_instrucoes]):
-                label.grid(row=linha_instrucoes + 1, column=j + 1, padx=5, pady=5)  # Ajuste de posição para linha e coluna numerada
-        janela.update()  # Atualiza a interface gráfica
-        linha_instrucoes += 1
+#Inicia uma nova thread para atualizar o pipeline usando a função fornecida (atualizacao_func).
+# Função para iniciar a simulação (normal ou com interrupção)
+def iniciar_simulacao(atualizacao_func):
+    matriz_frame.winfo_children().clear()
 
-# Função para iniciar a simulação normal
+    # Cria as labels das colunas no topo da matriz
+    for col in range(colunas):
+        tk.Label(matriz_frame, text=f"C{col+1}", width=15, height=2, relief="solid", bg="lightgray").grid(row=0, column=col+1, padx=5, pady=5)
+
+    # Cria as linhas da matriz e adiciona labels para cada célula
+    matriz_labels = []
+    for i in range(instrucoes):
+        # Cria labels para as linhas na lateral
+        tk.Label(matriz_frame, text=f"L{i+1}", width=5, height=3, relief="solid", bg="lightgray").grid(row=i+1, column=0, padx=5, pady=5)
+        # Cria as células da matriz e as insere na grid
+        linha = [tk.Label(matriz_frame, text="", width=15, height=3, relief="solid", bg="white") for _ in range(colunas)]
+        matriz_labels.append(linha)
+        for j, label in enumerate(linha):
+            label.grid(row=i + 1, column=j + 1, padx=5, pady=5)
+
+    # Inicia a atualização do pipeline em uma nova thread
+    threading.Thread(target=atualizacao_func, args=(matriz_labels,)).start()
+
+
+
+
+#f  unções para Iniciar Simulações
+
 def iniciar_simulacao_normal():
-    # Limpar a área da matriz antes de começar
-    for widgets in matriz_frame.winfo_children():
-        widgets.destroy()
+    iniciar_simulacao(lambda matriz: atualizar_pipeline(matriz, intervalo=1))
 
-    # Criar as labels para os números de colunas (no topo)
-    for col in range(colunas):
-        label_col = tk.Label(matriz_frame, text=f"C{col+1}", width=15, height=2, relief="solid", bg="lightgray")
-        label_col.grid(row=0, column=col + 1, padx=5, pady=5)
-
-    # Criar uma matriz de labels
-    matriz_labels = []
-    for i in range(instrucoes):
-        # Criar as labels para os números de linhas (na lateral)
-        label_linha = tk.Label(matriz_frame, text=f"L{i+1}", width=5, height=3, relief="solid", bg="lightgray")
-        label_linha.grid(row=i + 1, column=0, padx=5, pady=5)
-
-        matriz_labels.append([tk.Label(matriz_frame, text="", width=15, height=3, relief="solid", bg="white") for _ in range(colunas)])
-        for j, label in enumerate(matriz_labels[i]):
-            label.grid(row=i + 1, column=j + 1, padx=5, pady=5)
-
-    # Iniciar a simulação normalmente
-    threading.Thread(target=atualizar_pipeline_normalmente, args=(matriz_labels,)).start()
-    threading.Thread(target=adicionar_instrucao, args=(matriz_labels,)).start()
-
-# Função para iniciar a simulação com interrupção
 def iniciar_simulacao_com_interrupcao():
-    # Limpar a área da matriz antes de começar
-    for widgets in matriz_frame.winfo_children():
-        widgets.destroy()
-
-    # Criar as labels para os números de colunas (no topo)
-    for col in range(colunas):
-        label_col = tk.Label(matriz_frame, text=f"C{col+1}", width=15, height=2, relief="solid", bg="lightgray")
-        label_col.grid(row=0, column=col + 1, padx=5, pady=5)
-
-    # Criar uma matriz de labels
-    matriz_labels = []
-    for i in range(instrucoes):
-        # Criar as labels para os números de linhas (na lateral)
-        label_linha = tk.Label(matriz_frame, text=f"L{i+1}", width=5, height=3, relief="solid", bg="lightgray")
-        label_linha.grid(row=i + 1, column=0, padx=5, pady=5)
-
-        matriz_labels.append([tk.Label(matriz_frame, text="", width=15, height=3, relief="solid", bg="white") for _ in range(colunas)])
-        for j, label in enumerate(matriz_labels[i]):
-            label.grid(row=i + 1, column=j + 1, padx=5, pady=5)
-
-    # Iniciar a simulação com interrupção
-    threading.Thread(target=atualizar_pipeline_com_interrupcao, args=(matriz_labels,)).start()
-    threading.Thread(target=adicionar_instrucao, args=(matriz_labels,)).start()
+    iniciar_simulacao(lambda matriz: atualizar_pipeline(matriz, intervalo=1, com_interrupcao=True))
 
 # Configuração da interface gráfica
 janela = tk.Tk()
 janela.title("Simulação de Pipeline de Instruções")
 
-# Layout dos inputs
+# Layout para os botões de controle
 input_frame = tk.Frame(janela)
 input_frame.pack(pady=10)
 
-# Botão para iniciar a simulação normal
-iniciar_button_normal = tk.Button(input_frame, text="Iniciar Simulação Normal", command=iniciar_simulacao_normal)
-iniciar_button_normal.grid(row=0, column=0, padx=10, pady=10)
+tk.Button(input_frame, text="Iniciar Simulação Normal", command=iniciar_simulacao_normal).grid(row=0, column=0, padx=10, pady=10)
+tk.Button(input_frame, text="Iniciar Simulação com Interrupção", command=iniciar_simulacao_com_interrupcao).grid(row=0, column=1, padx=10, pady=10)
 
-# Botão para iniciar a simulação com interrupção
-iniciar_button_com_interrupcao = tk.Button(input_frame, text="Iniciar Simulação com Interrupção", command=iniciar_simulacao_com_interrupcao)
-iniciar_button_com_interrupcao.grid(row=0, column=1, padx=10, pady=10)
-
-# Área da matriz de pipeline
+# Frame que vai conter a matriz de pipeline
 matriz_frame = tk.Frame(janela)
 matriz_frame.pack(padx=10, pady=10)
 
-# Iniciar o loop principal da interface gráfica
+# Inicia o loop principal da interface gráfica (aguardando interações do usuário)
 janela.mainloop()
